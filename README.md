@@ -15,6 +15,104 @@ Environment configuration file (docker image, requirements.txt, and freeze-conda
 
 文件结构如下：
 
+```
+codebugmodel/
+
+│
+
+├── configs/
+
+│	├── **config.yaml**
+
+│	└── parse_args.py
+
+├── dataset/
+
+│	├── **DiverseVul-Derived**
+
+├── joern/
+
+│	├── data/
+
+│	│	├── cpPickle.py
+
+│	│	├──**dataEnhance.py**
+
+│	│	├──**simplifyMiddleStructureCode.py**
+
+│	│	├──statisticsCweProjectVul.py
+
+│	│	└── validDataUsable.py
+
+│	├── **joern_parse.py**
+
+│	├── sensiAPI.txt
+
+│	└── symbolizer.py
+
+├── MultiFCode/
+
+│	├── data/
+
+│	│	├── processed/
+
+│	│	│	└── **pre_embed/**
+
+│	│	└── word2vec/
+
+│	├── embedding/
+
+│	│	├── embedding.py
+
+│	│	└── vocabulary.py
+
+│	├── **LanguageModel/**
+
+│	│	├── cache/
+
+│	│	├── dataset/
+
+│	│	├── oldDataset/
+
+│	│	├── pre-model/
+
+│	│	├── saved_models/
+
+│	│	├── **base_test.sh**
+
+│	│	├── **evaluation_test_set.sh**
+
+│	│	├── model.py
+
+│	│	├── **run.py**
+
+│	│	├── sensiAPI.txt
+
+│	│	└── symbolizer.py
+
+│	├── model/
+
+│	├── wandb/
+
+│	├── **dataSet.py**
+
+│	├── **model.py**
+
+│	├── sensiAPI.txt
+
+│	├── tokenize_code.py
+
+│	└── **train.py**
+
+├── util/
+
+│	└──utils.py
+
+└── **Main.sh**
+
+
+```
+
 codebugmodel/
 
 │
