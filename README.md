@@ -1,6 +1,4 @@
-# RWCVDF---Real-World Code Vulnerability Detection
-Framework: From Data Preprocessing to
-Multi-Feature Fusion Detection
+# RWCVDF---Real-World Code Vulnerability Detection Framework: From Data Preprocessing to Multi-Feature Fusion Detection
 ## Dataset
 
 **Environment configuration file (docker image, requirements.txt, and freeze-conda-env.yml):**
