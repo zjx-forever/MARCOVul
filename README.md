@@ -1,5 +1,15 @@
-# RWCVDF
-Code of RWCVDF
+# RWCVDF---Real-World Code Vulnerability Detection
+Framework: From Data Preprocessing to
+Multi-Feature Fusion Detection
+## Dataset
+
+Environment configuration file (docker image, requirements.txt, and freeze-conda-env.yml):
+
+
+
+
+
+## Code of RWCVDF
 
 ### 文件结构
 
@@ -11,7 +21,7 @@ codebugmodel/
 
 ├── configs/
 
-│	├── config.yaml
+│	├── **config.yaml**
 
 │	└── parse_args.py
 
@@ -45,7 +55,7 @@ codebugmodel/
 
 │	│	├── processed/
 
-│	│	│	└── pre_embed/
+│	│	│	└── **pre_embed/**
 
 │	│	└── word2vec/
 
@@ -67,13 +77,13 @@ codebugmodel/
 
 │	│	├── saved_models/
 
-│	│	├── base_test.sh
+│	│	├── **base_test.sh**
 
-│	│	├── evaluation_test_set.sh
+│	│	├── **evaluation_test_set.sh**
 
 │	│	├── model.py
 
-│	│	├── run.py
+│	│	├── **run.py**
 
 │	│	├── sensiAPI.txt
 
@@ -83,9 +93,9 @@ codebugmodel/
 
 │	├── wandb/
 
-│	├── dataSet.py
+│	├── **dataSet.py**
 
-│	├── model.py
+│	├── **model.py**
 
 │	├── sensiAPI.txt
 
@@ -134,3 +144,27 @@ util为工具文件夹，其下包含utils.py文件。该文件中包含了框�
 ### Main.sh
 
 Main.sh为总运行脚本，在完成环境配置、原始数据准备、预训练模型准备工作后，直接运行Main.sh即可运行全流程。若只执行部分步骤，则需要对该脚本进行相应的调整。
+
+
+
+### Docker
+
+docker中的conda环境如图：
+
+![image-20250215135739449](./assets/image-20250215135739449.png)
+
+joern环境为使用joern生成代码中间结构的环境，bugdetect环境为多表征融合检测的环境。
+
+
+
+我们提供相应的docker镜像，存储在xxxxxx中，叫做zjx-cvd-v1.tar
+
+使用命令``docker load < zjx-cvd-v1.tar ``可以加载该docker镜像。
+
+使用下述命令运行容器：
+
+``docker run -itd --name name(e.g. codebug) --shm-size 120g -p Port mapping (e.g. 48422:422) --runtime=nvidia -v Path mapping (e.g. /xxx/codebug:/workspace/codebug) zjx/cvd:v1 /bin/bash``
+
+使用下述命令进入容器：
+
+docker exec -it name (e.g. codebug) /bin/bash
