@@ -70,8 +70,8 @@ model:
       fine_tuning: True
       cache_dir: "LanguageModel/pre-model/cache/codeBERT"
       path_dir: "LanguageModel/pre-model/codeBERT/microsoft-codebert-base"
-      fine_tuning_path_novar: "LanguageModel/saved_models/Derived2/codeBERT/microsoft-codebert-base/novar-3weight-lr1e-5"
-      fine_tuning_path_usevar: "LanguageModel/saved_models/Derived2/codeBERT/microsoft-codebert-base/usevar-3weight-lr1e-5"
+      fine_tuning_path_novar: "LanguageModel/saved_models/Derived/codeBERT/microsoft-codebert-base/novar-3weight-lr1e-5"
+      fine_tuning_path_usevar: "LanguageModel/saved_models/Derived/codeBERT/microsoft-codebert-base/usevar-3weight-lr1e-5"
       output_size: 768
       block_size: 512
       embed_size: ${model.embedding.codebert-base.output_size}
@@ -81,8 +81,8 @@ model:
       fine_tuning: True
       cache_dir: "LanguageModel/pre-model/cache/salesforce"
       path_dir: "LanguageModel/pre-model/salesforce/codet5-base"
-      fine_tuning_path_novar: "LanguageModel/saved_models/Derived2/salesforce/codet5-base/novar-3weight-lr1e-5"
-      fine_tuning_path_usevar: "LanguageModel/saved_models/Derived2/salesforce/codet5-base/usevar-3weight-lr1e-5"
+      fine_tuning_path_novar: "LanguageModel/saved_models/Derived/salesforce/codet5-base/novar-3weight-lr1e-5"
+      fine_tuning_path_usevar: "LanguageModel/saved_models/Derived/salesforce/codet5-base/usevar-3weight-lr1e-5"
       output_size: 768
       block_size: 512
       embed_size: ${model.embedding.codet5-base.output_size}
