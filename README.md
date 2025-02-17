@@ -1,4 +1,4 @@
-# RWCVDF---Real-World Code Vulnerability Detection Framework: From Data Preprocessing to Multi-Feature Fusion Detection
+# MARCOVul---Real-World Code Vulnerability Detection Framework: From Data Preprocessing to Multi-Feature Fusion Detection
 ## Dataset
 
 **Environment configuration file (docker image, requirements.txt, and freeze-conda-env.yml):**
@@ -9,14 +9,22 @@ xxxxx
 
 xxxxx
 
-The data file structure is the same as the code file structure.
+Data files include two zip files: ``dataset.zip`` and ``AllData.zip``.  Where ``AllData.zip`` includes everything in ``dataset.zip``. 
+
+##### dataset.zip
+
+``dataset.zip`` includes only raw data and derived data, excluding intermediate data and model data.
+
+##### AllData.zip
+
+The AllData folder structure is the same as the code folder structure.
 
 The **dataset** folder contains:
 
 - **DiverseVul**: The original dataset.
 - **DiverseVul-Derived**: The dataset after data derivation.
 
-The **joern** folder contains all generated intermediate structure data:
+The **joern/data** folder contains all generated intermediate structure data:
 
 - **DiverseVul-Derived**: Data after intermediate structure generation.
 - **DiverseVul-Derived-enhance**: Data after data augmentation.
@@ -31,7 +39,7 @@ The **MultiFCode/LanguageModel** folder contains:
 
   
 
-## Code of RWCVDF
+## Code of MARCOVul
 
 ### File structure
 
