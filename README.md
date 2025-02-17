@@ -3,11 +3,11 @@
 
 **Environment configuration file (docker image, requirements.txt, and freeze-conda-env.yml):**
 
-xxxxx
+Zhang, J. (2025). Docker Image file of MARCOVul. Zenodo. https://doi.org/10.5281/zenodo.14875099
 
 **Data files:**
 
-xxxxx
+Zhang, J. (2025). All data of MARCOVul [Data set]. Zenodo. https://doi.org/10.5281/zenodo.14878568
 
 Data files include two zip files: ``dataset.zip`` and ``AllData.zip``.  Where ``AllData.zip`` includes everything in ``dataset.zip``. 
 
@@ -21,8 +21,8 @@ The AllData folder structure is the same as the code folder structure.
 
 The **dataset** folder contains:
 
-- **DiverseVul**: The original dataset.
-- **DiverseVul-Derived**: The dataset after data derivation.
+- **DiverseVul**: The original dataset. Among them, `diversevul_20230702.json` is the obtained raw data, while `train.jsonl`, `valid.jsonl`, and `test.jsonl` are the randomly split training, validation, and testing sets.
+- **DiverseVul-Derived**: The dataset after data derivation. Among them, `allData.jsonl` contains all the data with verified functions before data derivation, while `train.jsonl`, `valid.jsonl`, and `test.jsonl` are the training, validation, and testing sets after data derivation.
 
 The **joern/data** folder contains all generated intermediate structure data:
 
