@@ -101,5 +101,6 @@ def tokenize_code_line(line: str, subtoken: bool = False):
         res = tmp
     return res
 
+
 if __name__ == '__main__':
     tokenize_code_line('youaresogreat hhh!', True)

@@ -10,23 +10,13 @@ PAD = "<PAD>"
 UNK = "<UNK>"
 MASK = "<MASK>"
 
+
 @dataclass
 class Vocabulary:
     token_to_id: Dict[str, int]
 
     @staticmethod
     def build_from_w2v(w2v_path: str, speicial_tokens: List[str] = [PAD, UNK, MASK]):
-        """
-        build vocabulary from word2vec wv
-
-        Args:
-            w2v_path: path to word2vec wv
-            speicial_tokens:
-
-
-        Returns:
-
-        """
         assert exists(w2v_path), f"{w2v_path} not exists!"
         model = KeyedVectors.load(w2v_path, mmap="r")
         attr = dict()

@@ -140,9 +140,10 @@ def clean_gadget(gadget: List[str]):
 
 if __name__ == "__main__":
     # test
-    l = ["static int genprime_cb(int p, int n, BN_GENCB *arg)\n\t{\n\tchar c='*';\n\n\tif (p == 0) c='.';\n\tif (p == 1) c='+';\n\tif (p == 2) c='hhh*';\n\tif (p == 3) c='\\n';\n\tputc(c, stderr);\n\tfflush(stderr);\n\t a = 'hhh';return 1;\n\t}"]
+    l = [
+        "static int genprime_cb(int p, int n, BN_GENCB *arg)\n\t{\n\tchar c='*';\n\n\tif (p == 0) c='.';\n\tif (p == 1) c='+';\n\tif (p == 2) c='hhh*';\n\tif (p == 3) c='\\n';\n\tputc(c, stderr);\n\tfflush(stderr);\n\t a = 'hhh';return 1;\n\t}"]
     # l = ['strncpy(buf2R1, argv[1], BUFSIZER1-1);']
-    cg=clean_gadget(l)
+    cg = clean_gadget(l)
     print(cg)
     print('\n')
     print(cg[0])

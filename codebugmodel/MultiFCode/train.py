@@ -13,7 +13,8 @@ import torch_geometric
 from tqdm import tqdm
 from datetime import datetime
 import pytz
-from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score, matthews_corrcoef, precision_recall_curve
+from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score, matthews_corrcoef, \
+    precision_recall_curve
 import wandb
 
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -33,6 +34,7 @@ MY_MODEL_CLASSES = {
 
 tqdm_disable = True
 
+
 def keep_reproducibility(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -46,6 +48,7 @@ def keep_reproducibility(seed):
     torch.use_deterministic_algorithms(True)
     os.environ['PYTHONHASHSEED'] = str(seed)
     torch_geometric.seed_everything(seed)
+
 
 myseed = 422  # My birthday, hhh
 
@@ -134,14 +137,20 @@ def train_pre_train(model_type, device):
     prefixes_to_exclude = ['classifierLayer']
 
     ast_pretrained_dict = torch.load(ast_best_model_file_path)
-    ast_filtered_dict = {k: v for k, v in ast_pretrained_dict.items() if not any(k.startswith(prefix) for prefix in prefixes_to_exclude)}
-    ast_filtered_dict = {k.replace('MLPSequential', 'ast_MLP') if 'MLPSequential' in k else k: v for k, v in ast_filtered_dict.items()}
+    ast_filtered_dict = {k: v for k, v in ast_pretrained_dict.items() if
+                         not any(k.startswith(prefix) for prefix in prefixes_to_exclude)}
+    ast_filtered_dict = {k.replace('MLPSequential', 'ast_MLP') if 'MLPSequential' in k else k: v for k, v in
+                         ast_filtered_dict.items()}
     cfg_pretrained_dict = torch.load(cfg_best_model_file_path)
-    cfg_filtered_dict = {k: v for k, v in cfg_pretrained_dict.items() if not any(k.startswith(prefix) for prefix in prefixes_to_exclude)}
-    cfg_filtered_dict = {k.replace('MLPSequential', 'cfg_MLP') if 'MLPSequential' in k else k: v for k, v in cfg_filtered_dict.items()}
+    cfg_filtered_dict = {k: v for k, v in cfg_pretrained_dict.items() if
+                         not any(k.startswith(prefix) for prefix in prefixes_to_exclude)}
+    cfg_filtered_dict = {k.replace('MLPSequential', 'cfg_MLP') if 'MLPSequential' in k else k: v for k, v in
+                         cfg_filtered_dict.items()}
     pdg_pretrained_dict = torch.load(pdg_best_model_file_path)
-    pdg_filtered_dict = {k: v for k, v in pdg_pretrained_dict.items() if not any(k.startswith(prefix) for prefix in prefixes_to_exclude)}
-    pdg_filtered_dict = {k.replace('MLPSequential', 'pdg_MLP') if 'MLPSequential' in k else k: v for k, v in pdg_filtered_dict.items()}
+    pdg_filtered_dict = {k: v for k, v in pdg_pretrained_dict.items() if
+                         not any(k.startswith(prefix) for prefix in prefixes_to_exclude)}
+    pdg_filtered_dict = {k.replace('MLPSequential', 'pdg_MLP') if 'MLPSequential' in k else k: v for k, v in
+                         pdg_filtered_dict.items()}
 
     model.load_state_dict(ast_filtered_dict, strict=False)
     model.load_state_dict(cfg_filtered_dict, strict=False)
@@ -180,14 +189,16 @@ def train_valid(model, device):
     global g_dataloader
     print(f'------------------------Train------------------------', flush=True)
     print('Loading Train Data...', flush=True)
-    dataset_train = CodeDataSet(train_path_list, config, reprocess=whether_reprocess, one_time_read = whether_one_time_read, pre_embed=whether_pre_embed)
+    dataset_train = CodeDataSet(train_path_list, config, reprocess=whether_reprocess,
+                                one_time_read=whether_one_time_read, pre_embed=whether_pre_embed)
     print('Train Data Loading Done...', flush=True)
     loader_train = DataLoader(dataset_train, batch_size=config.batch_size, shuffle=whether_shuffle,
                               num_workers=config.num_workers, drop_last=False, pin_memory=whether_pin_memory,
                               prefetch_factor=num_prefetch_factor_train, persistent_workers=whether_persistent_workers)
 
     print('Loading Valid Data...', flush=True)
-    dataset_valid = CodeDataSet(valid_path_list, config, reprocess=whether_reprocess, one_time_read = whether_one_time_read, pre_embed=whether_pre_embed)
+    dataset_valid = CodeDataSet(valid_path_list, config, reprocess=whether_reprocess,
+                                one_time_read=whether_one_time_read, pre_embed=whether_pre_embed)
     print('Valid Data Loading Done...', flush=True)
     loader_valid = DataLoader(dataset_valid, batch_size=config.batch_size, shuffle=False,
                               num_workers=config.num_workers, drop_last=False, pin_memory=whether_pin_memory,
@@ -208,7 +219,8 @@ def train_valid(model, device):
         model.train()
         all_preds = np.array([])
         all_labels = np.array([])
-        with tqdm(total=len(loader_train), ncols=80, desc=f"Epoch [{epoch + 1}/{all_epoch}]", disable=tqdm_disable, mininterval=300) as pbar:
+        with tqdm(total=len(loader_train), ncols=80, desc=f"Epoch [{epoch + 1}/{all_epoch}]", disable=tqdm_disable,
+                  mininterval=300) as pbar:
             total_loss = 0
             for i, batch in enumerate(loader_train):
                 for t in g_type:
@@ -237,12 +249,15 @@ def train_valid(model, device):
 
         log_dict = {}
 
-        train_acc, train_recall, train_precision, train_f1, train_macro_f1, train_mcc = calculate_metrics(all_preds, all_labels)
+        train_acc, train_recall, train_precision, train_f1, train_macro_f1, train_mcc = calculate_metrics(all_preds,
+                                                                                                          all_labels)
 
         avg_loss = total_loss / len(loader_train.dataset)
         print('Train:', flush=True)
         print(f'Train Epuch: {epoch}', flush=True)
-        print(f'Train Acc: {train_acc}, Train Recall: {train_recall}, Train Precision: {train_precision}, Train F1: {train_f1},  Train Macro-F1: {train_macro_f1}, Train MCC: {train_mcc}', flush=True)
+        print(
+            f'Train Acc: {train_acc}, Train Recall: {train_recall}, Train Precision: {train_precision}, Train F1: {train_f1},  Train Macro-F1: {train_macro_f1}, Train MCC: {train_mcc}',
+            flush=True)
         print('---------------------------------', flush=True)
 
         log_dict["Epoch"] = epoch
@@ -255,7 +270,9 @@ def train_valid(model, device):
         log_dict["train_Avgloss"] = avg_loss
 
         print('Valid Start:', flush=True)
-        validAvgloss, valid_acc, valid_recall, valid_precision, valid_f1, valid_macro_f1, valid_mcc = valid(model, loader_valid, device)
+        validAvgloss, valid_acc, valid_recall, valid_precision, valid_f1, valid_macro_f1, valid_mcc = valid(model,
+                                                                                                            loader_valid,
+                                                                                                            device)
         print('Valid End!', flush=True)
 
         log_dict["valid_acc"] = valid_acc
@@ -281,7 +298,8 @@ def train_valid(model, device):
             print('---------Current Best Model---------', flush=True)
             print('Current all_score: ', all_score, flush=True)
             print(
-                f"Best Valid epoch: {epoch}, Best Valid Acc: {valid_acc}, Best Valid Recall: {valid_recall}, Best Valid Precision: {valid_precision}, Best Valid F1: {valid_f1}, Best Valid Macro-F1: {valid_macro_f1}, Best Valid MCC: {valid_mcc}", flush=True)
+                f"Best Valid epoch: {epoch}, Best Valid Acc: {valid_acc}, Best Valid Recall: {valid_recall}, Best Valid Precision: {valid_precision}, Best Valid F1: {valid_f1}, Best Valid Macro-F1: {valid_macro_f1}, Best Valid MCC: {valid_mcc}",
+                flush=True)
         else:
             early_stop_cnt += 1
 
@@ -300,6 +318,7 @@ def train_valid(model, device):
     print('---------------------------------------------Done---------------------------------------------', flush=True)
 
     return min_loss, loss_record
+
 
 def valid(model, valid_set, device):
     global config
@@ -324,8 +343,10 @@ def valid(model, valid_set, device):
             all_labels = np.append(all_labels, batch[g_type[0]].y.cpu().numpy())
 
         avg_loss = total_loss / len(valid_set.dataset)
-        valid_acc, valid_recall, valid_precision, valid_f1, valid_macro_f1, valid_mcc = calculate_metrics(all_preds, all_labels)
-        print(f'Valid Acc: {valid_acc}, Valid Recall: {valid_recall}, Valid Precision: {valid_precision}, Valid F1: {valid_f1},  Valid Macro-F1: {valid_macro_f1}, Valid MCC: {valid_mcc}')
+        valid_acc, valid_recall, valid_precision, valid_f1, valid_macro_f1, valid_mcc = calculate_metrics(all_preds,
+                                                                                                          all_labels)
+        print(
+            f'Valid Acc: {valid_acc}, Valid Recall: {valid_recall}, Valid Precision: {valid_precision}, Valid F1: {valid_f1},  Valid Macro-F1: {valid_macro_f1}, Valid MCC: {valid_mcc}')
 
         return avg_loss, valid_acc, valid_recall, valid_precision, valid_f1, valid_macro_f1, valid_mcc
 
@@ -346,7 +367,8 @@ def test(model, device):
     model.load_state_dict(torch.load(best_model_file_path))
     model.eval()
     print('Loading Test Data...')
-    dataset_test = CodeDataSet(test_path_list, config, reprocess=whether_reprocess, one_time_read = whether_one_time_read, pre_embed=whether_pre_embed)
+    dataset_test = CodeDataSet(test_path_list, config, reprocess=whether_reprocess, one_time_read=whether_one_time_read,
+                               pre_embed=whether_pre_embed)
     print('Test Data Loading Done...')
     loader_test = DataLoader(dataset_test, batch_size=config.batch_size, shuffle=False,
                              num_workers=config.num_workers, drop_last=False, pin_memory=whether_pin_memory,
@@ -373,8 +395,11 @@ def test(model, device):
                 all_ids = np.append(all_ids, batch[g_type[0]].idx.cpu().numpy())
                 pbar.update(1)
 
-        test_acc, test_recall, test_precision, test_f1, test_macro_f1, test_mcc, pr_dict = calculate_metrics(all_preds, all_labels, pr_curve=True)
-        print(f'Test Acc: {test_acc}, Test Recall: {test_recall}, Test Precision: {test_precision}, Test F1: {test_f1},  Test Macro-F1: {test_macro_f1}, Test MCC: {test_mcc}')
+        test_acc, test_recall, test_precision, test_f1, test_macro_f1, test_mcc, pr_dict = calculate_metrics(all_preds,
+                                                                                                             all_labels,
+                                                                                                             pr_curve=True)
+        print(
+            f'Test Acc: {test_acc}, Test Recall: {test_recall}, Test Precision: {test_precision}, Test F1: {test_f1},  Test Macro-F1: {test_macro_f1}, Test MCC: {test_mcc}')
 
         if whether_log_wandb:
             log_dict_test = {
@@ -411,10 +436,12 @@ def calculate_metrics(all_preds, all_labels, pr_curve=False):
         return test_acc, test_recall, test_precision, test_f1, test_macro_f1, test_mcc, pr_dict
     return test_acc, test_recall, test_precision, test_f1, test_macro_f1, test_mcc
 
+
 def output_result(ids, preds, labels, file_path):
     with open(file_path, 'w') as f:
         for i in range(len(labels)):
             f.write(f'{ids[i]}\t\tA:{labels[i]}\t\tP:{preds[i]}\n')
+
 
 def rng_state():
     global current_time
@@ -426,6 +453,7 @@ def rng_state():
     print('---------------------------------------------------')
     print('rng_state saved at:' + rng_state_path)
     print('---------------------------------------------------')
+
 
 def save_model_file():
     global model_base_path

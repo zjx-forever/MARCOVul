@@ -18,6 +18,7 @@ def is_pyg_or_nx(G):
     else:
         return None
 
+
 def assign_value_to_property(data):
     if data.y is None:
         data.y = data.stores[0]['graph_label']
@@ -33,11 +34,9 @@ def load_pickle_form_pyg_data(file_path):
     string_type = is_pyg_or_nx(G)
     if string_type == 'pyg.Data':
         return G
-    elif string_type == 'networkx.DiGraph':  
-        
+    elif string_type == 'networkx.DiGraph':
+
         if 'cwe' in G.graph:
-            
-            
             G.graph['cwe'] = {"cwe": G.graph['cwe']}
         return assign_value_to_property(from_networkx(G))
     else:
@@ -47,8 +46,6 @@ def load_pickle_form_pyg_data(file_path):
 def save_pyg_data_to_pickle(G, file_path):
     with open(file_path, 'wb') as f:
         pickle.dump(G, f)
-
-
 
 
 def find_matching_bracket(text, start_index, bracket_type=1):
@@ -82,15 +79,13 @@ def find_matching_bracket(text, start_index, bracket_type=1):
 
 EMBEDDING_MODEL_CLASSES = {
     'auto': (AutoConfig, AutoModel, AutoTokenizer),
-    
+
     't5': (AutoConfig, T5EncoderModel, AutoTokenizer),
 }
 
 
 def loadBertModel(configs: DictConfig):
     embed_config = configs.model.embedding
-
-    
 
     name_novar = embed_config.name_novar
     name_usevar = embed_config.name_usevar
@@ -109,7 +104,6 @@ def loadBertModel(configs: DictConfig):
 
     checkpoint_prefix = 'checkpoint-best-acc/model.bin'
 
-    
     path_dir_usevar = current_model_config_usevar.path_dir
     config_usevar = config_class_usevar.from_pretrained(path_dir_usevar, cache_dir=cache_dir_usevar,
                                                         local_files_only=True)
@@ -134,7 +128,6 @@ def loadBertModel(configs: DictConfig):
 
         model_usevar.load_state_dict(new_state_dict_usevar, strict=False)
 
-    
     path_dir_novar = current_model_config_novar.path_dir
     config_novar = config_class_novar.from_pretrained(path_dir_novar, cache_dir=cache_dir_novar,
                                                       local_files_only=True)
@@ -175,11 +168,12 @@ def convert_MyAutoModel_to_AutoModel(old_model_state_dict):
     for key in old_model_state_dict.keys():
         new_key = key.replace('encoder.roberta.embeddings.', 'embeddings.').replace('encoder.roberta.encoder.',
                                                                                     'encoder.')
-        
+
         if new_key.startswith('encoder.classifier'):
             continue
         new_model_state_dict[new_key] = old_model_state_dict[key]
     return new_model_state_dict
+
 
 def convert_MyAutoModel_to_T5EncoderModel(old_model_state_dict):
     new_model_state_dict = {}
@@ -187,11 +181,12 @@ def convert_MyAutoModel_to_T5EncoderModel(old_model_state_dict):
         new_key = key.replace('encoder.transformer.shared.',
                               'shared.').replace('encoder.transformer.encoder.',
                                                  'encoder.').replace('encoder.transformer.decoder.', 'decoder.')
-        
+
         if new_key.startswith('decoder') or new_key.startswith('encoder.classification_head'):
             continue
         new_model_state_dict[new_key] = old_model_state_dict[key]
     return new_model_state_dict
+
 
 def calculate_evaluation_orders_cuda(adjacency_list, tree_size, device):
     '''Calculates the node_order and edge_order from a tree adjacency_list and the tree_size.
@@ -213,14 +208,11 @@ def calculate_evaluation_orders_cuda(adjacency_list, tree_size, device):
     old_unready_parents_len = None
     n = 0
     while unevaluated_nodes.any():
-        
+
         unevaluated_mask = unevaluated_nodes[child_nodes]
 
-        
         unready_parents = parent_nodes[unevaluated_mask]
 
-        
-        
         nodes_to_evaluate = unevaluated_nodes & ~torch.any(torch.eq(node_ids.unsqueeze(1), unready_parents), dim=1)
 
         if old_unready_parents_len == unready_parents.size(0):

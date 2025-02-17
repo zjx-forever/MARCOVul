@@ -13,6 +13,7 @@ from vocabulary import Vocabulary
 from os.path import exists
 from torch.nn.utils.rnn import pad_sequence
 
+
 def memory_allocated_decorator(func):
     def wrapper(*args, **kwargs):
         before = torch.cuda.memory_allocated()
@@ -21,6 +22,7 @@ def memory_allocated_decorator(func):
         mem = (after - before) / 1024 / 1024
         print(f'{func.__name__}: {mem} MB')
         return result
+
     return wrapper
 
 
@@ -41,8 +43,7 @@ class RNNLayer(torch.nn.Module):
             bidirectional=config.RNN.use_bi,
             dropout=config.RNN.drop_out if config.RNN.num_layers > 1 else 0,
             batch_first=True)
-        
-    
+
     def forward(self, subtokens_embed: torch.Tensor, node_ids: torch.Tensor):
         """
 
@@ -54,19 +55,17 @@ class RNNLayer(torch.nn.Module):
 
         """
         with torch.no_grad():
-            
             is_contain_pad_id, first_pad_pos = torch.max(node_ids == self.__pad_idx, dim=1)
-            
-            first_pad_pos[~is_contain_pad_id] = node_ids.shape[1]  
-            
-            sorted_path_lengths, sort_indices = torch.sort(first_pad_pos,descending=True)
-            
+
+            first_pad_pos[~is_contain_pad_id] = node_ids.shape[1]
+
+            sorted_path_lengths, sort_indices = torch.sort(first_pad_pos, descending=True)
+
             _, reverse_sort_indices = torch.sort(sort_indices)
             sorted_path_lengths = sorted_path_lengths.to(torch.device("cpu"))
-        
+
         subtokens_embed = subtokens_embed[sort_indices]
-        
-        
+
         packed_embeddings = nn.utils.rnn.pack_padded_sequence(
             subtokens_embed, sorted_path_lengths, batch_first=True, enforce_sorted=False)
 
@@ -88,7 +87,6 @@ class Word2vecEmbedding(torch.nn.Module):
         self.vocabulary_size = self.vocab.get_vocab_size()
         self.__pad_idx = self.vocab.get_pad_id()
 
-        
         self.__wd_embedding = nn.Embedding(self.vocabulary_size,
                                            config.w2v.vector_size,
                                            padding_idx=self.__pad_idx)
@@ -99,7 +97,6 @@ class Word2vecEmbedding(torch.nn.Module):
 
         self.__rnn_attn = RNNLayer(config, self.__pad_idx)
 
-    
     def __add_w2v_weights(self, w2v_path: str, vocab: Vocabulary):
         """
         add pretrained word embedding to embedding layer
@@ -116,8 +113,6 @@ class Word2vecEmbedding(torch.nn.Module):
             w2v_weights[vocab.convert_token_to_id(wd)] = torch.from_numpy(model[wd])
         self.__wd_embedding.weight.data.copy_(w2v_weights)
 
-    
-    
     def forward(self, seq: torch.Tensor):
         """
 
@@ -127,9 +122,8 @@ class Word2vecEmbedding(torch.nn.Module):
         Returns:
 
         """
-        
-        
+
         wd_embedding = self.__wd_embedding(seq)
-        
+
         node_embedding = self.__rnn_attn(wd_embedding, seq)
         return node_embedding

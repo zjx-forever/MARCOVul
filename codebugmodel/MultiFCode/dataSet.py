@@ -24,6 +24,7 @@ import concurrent.futures
 
 memory_base_path = ''
 
+
 def generate_memory_base_path():
     global memory_base_path
     if memory_base_path == '':
@@ -78,7 +79,7 @@ class CodeDataSet(Dataset):
         super(CodeDataSet, self).__init__(root=root)
 
     def _process(self):
-        
+
         self.processed_dir_project_path = join(self.processed_dir,
                                                *self.data_path_list[0].split(self.current_path_sep)[-3:-1])
         current_dir_paths = [join(self.processed_dir, *data_path.split(self.current_path_sep)[-3:]) for data_path in
@@ -88,26 +89,21 @@ class CodeDataSet(Dataset):
                                                    *self.data_path_list[0].split(self.current_path_sep)[-3:-1])
             current_dir_paths = [join(self.processed_dir, 'pre_embed', *data_path.split(self.current_path_sep)[-3:]) for
                                  data_path in self.data_path_list]
-            
-            
-            
-            
 
         count_path = 0
         for current_dir_path in current_dir_paths:
             if os.path.exists(current_dir_path):
                 count_path += 1
 
-        
         if count_path == len(current_dir_paths):
             if not self.reprocess:
                 if self.one_time_read:
-                    
+
                     self.graphs_dict_list = self.get_pyg_data_list_one_time()
                     print('Processed data exists, no need to process again! one time read!', flush=True)
                     return
                 else:
-                    
+
                     self.graphs_path_dict_list = self.get_pyg_data_list()
                     print('Processed data exists, no need to process again!', flush=True)
                     return
@@ -151,14 +147,13 @@ class CodeDataSet(Dataset):
 
         for t in self.g_type:
             data_file_path_list = []
-            
+
             self.max_token_len = -1
-            
+
             self.max_token_len_func = -1
-            
+
             self.graphs_file_path_list = []
 
-            
             for data_path in self.data_path_list:
                 current_type = data_path.split(self.current_path_sep)[-1].split('_')[0]
                 if current_type == t:
@@ -171,7 +166,7 @@ class CodeDataSet(Dataset):
                 for path_tuple in data_file_path_list:
                     future = self.load_preprocess_save_embed(path_tuple, t)
                     error_list.append(future)
-                
+
                 flag = False
                 for error in error_list:
                     result = error
@@ -187,7 +182,7 @@ class CodeDataSet(Dataset):
                 del data_file_path_list
                 gc.collect()
             else:
-                
+
                 print(f'Start call load_preprocess_save_token method --{t}', flush=True)
                 with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_workers) as executor:
                     error_list = []
@@ -195,7 +190,7 @@ class CodeDataSet(Dataset):
                         future = executor.submit(self.load_preprocess_save_token, path_tuple, t)
                         error_list.append(future)
                     executor.shutdown()
-                    
+
                     flag = False
                     for error in error_list:
                         result = error.result()
@@ -212,17 +207,16 @@ class CodeDataSet(Dataset):
                 del data_file_path_list
                 gc.collect()
 
-                
                 if not self.pre_embed:
                     print(f'Start call deal_token_to_id_base_mtl method --{t}', flush=True)
-                    
+
                     with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_workers) as executor:
                         error_list = []
                         for g_path in self.graphs_file_path_list:
                             future = executor.submit(self.deal_token_to_id_base_mtl, g_path)
                             error_list.append(future)
                         executor.shutdown()
-                        
+
                         flag = False
                         for error in error_list:
                             result = error.result()
@@ -243,10 +237,10 @@ class CodeDataSet(Dataset):
         del self.lock
 
         if self.one_time_read:
-            
+
             self.graphs_dict_list = self.get_pyg_data_list_one_time()
         else:
-            
+
             self.graphs_path_dict_list = self.get_pyg_data_list()
 
     def get_pyg_data_list(self):
@@ -257,11 +251,11 @@ class CodeDataSet(Dataset):
                 end_dir_path = data_path.split(self.current_path_sep)[-1]
                 if end_dir_path.split('_')[0] == t:
                     current_dir_path = join(self.processed_dir_project_path,
-                                            end_dir_path)  
+                                            end_dir_path)
                     file_path_list_ = os.listdir(current_dir_path)
-                    
+
                     file_path_list_ = sorted(file_path_list_, key=lambda x: x.split('.')[0].split('-')[1])
-                    
+
                     full_file_path_list_ = [join(current_dir_path, file_path) for file_path in file_path_list_]
                     graphs_path_dict_list_new[t] = full_file_path_list_
                     break
@@ -278,7 +272,7 @@ class CodeDataSet(Dataset):
                     file_path_list_ = os.listdir(current_dir_path)
                     file_path_list_ = sorted(file_path_list_, key=lambda x: x.split('.')[0].split('-')[1])
                     full_file_path_list_ = [join(current_dir_path, file_path) for file_path in file_path_list_]
-                    
+
                     graphs_dict_list_new[t] = [torch.load(file_path) for file_path in full_file_path_list_]
         return graphs_dict_list_new
 
@@ -290,12 +284,11 @@ class CodeDataSet(Dataset):
         node_ids_func = torch.full((1, self.max_token_len_func),
                                    self.vocab.get_pad_id(),
                                    dtype=torch.long)
-        
+
         for i in range(len(g.x)):
             ids = self.vocab.convert_tokens_to_ids(g.x[i])
             node_ids[i, 0:len(ids)] = torch.tensor(ids, dtype=torch.long)
 
-        
         ids_func = self.vocab.convert_tokens_to_ids(g.func)
         node_ids_func[0, 0:len(ids_func)] = torch.tensor(ids_func, dtype=torch.long)
 
@@ -309,39 +302,28 @@ class CodeDataSet(Dataset):
             pyg_data.y = pyg_data.stores[0]['graph_label']
             pyg_data.x = pyg_data.stores[0]['label']
 
-            
-            
-            
-
-            
             if not isinstance(pyg_data.edge_index, torch.Tensor):
                 pyg_data.edge_index = torch.tensor(pyg_data.edge_index, dtype=torch.long)
 
             pyg_data.graph_path = data_file_tuple[1]
 
-            
             self.preproccess_edge_type(pyg_data, current_type)
 
-            
             mtl, pyg_data.x = self.record_max_token_len_and_segmentation(pyg_data.x)
             mtl_func, pyg_data.func = self.record_max_token_len_and_segmentation_func(pyg_data.func)
 
-            
             pyg_data.stores[0].pop('graph_label')
             pyg_data.stores[0].pop('label')
             if 'edge_label' in pyg_data.stores[0]:
                 pyg_data.stores[0].pop('edge_label')
 
-            
             current_processed_dir_path = join(self.processed_dir, *data_file_tuple[0].split(self.current_path_sep)[-3:])
 
-            
             if not os.path.exists(current_processed_dir_path):
                 os.makedirs(current_processed_dir_path, exist_ok=True)
             save_path = join(current_processed_dir_path, data_file_tuple[1])
             torch.save(pyg_data, join(save_path))
 
-            
             with self.lock:
                 if mtl > self.max_token_len:
                     self.max_token_len = mtl
@@ -365,21 +347,15 @@ class CodeDataSet(Dataset):
             pyg_data.y = pyg_data.stores[0]['graph_label']
             pyg_data.x = pyg_data.stores[0]['label']
 
-            
-            
-            
-
-            
             if not isinstance(pyg_data.edge_index, torch.Tensor):
                 pyg_data.edge_index = torch.tensor(pyg_data.edge_index, dtype=torch.long)
 
             pyg_data.graph_path = data_file_tuple[1]
 
-            
             self.preproccess_edge_type(pyg_data, current_type)
             with torch.no_grad():
                 max_len_x = 300
-                
+
                 for i in range(0, len(pyg_data.x), max_len_x):
                     inputs = tokenizer_usevar(pyg_data.x[i:i + max_len_x], padding=True, truncation=True,
                                               return_tensors="pt").to(self.device)
@@ -392,7 +368,8 @@ class CodeDataSet(Dataset):
                     torch.cuda.empty_cache()
                 pyg_data.x = torch.stack(pyg_data.x, 0)
 
-                inputs_func = tokenizer_novar(pyg_data.func, padding=True, truncation=True, return_tensors="pt").to(self.device)
+                inputs_func = tokenizer_novar(pyg_data.func, padding=True, truncation=True, return_tensors="pt").to(
+                    self.device)
                 outputs_func = model_novar(**inputs_func)
                 sentence_embeddings_func = outputs_func.last_hidden_state[:, 0]
                 sentence_embeddings_func = torch.nn.functional.normalize(sentence_embeddings_func, p=2, dim=1)
@@ -402,17 +379,14 @@ class CodeDataSet(Dataset):
                 del inputs_func, outputs_func, sentence_embeddings_func
                 torch.cuda.empty_cache()
 
-            
             pyg_data.stores[0].pop('graph_label')
             pyg_data.stores[0].pop('label')
             if 'edge_label' in pyg_data.stores[0]:
                 pyg_data.stores[0].pop('edge_label')
 
-            
             current_processed_dir_path = join(self.processed_dir, 'pre_embed',
                                               *data_file_tuple[0].split(self.current_path_sep)[-3:])
 
-            
             if not os.path.exists(current_processed_dir_path):
                 os.makedirs(current_processed_dir_path, exist_ok=True)
             save_path = join(current_processed_dir_path, data_file_tuple[1])
@@ -427,7 +401,7 @@ class CodeDataSet(Dataset):
             return json.dumps(current_json)
 
     def preproccess_edge_type(self, data, current_type):
-        
+
         if 'edge_label' in data.stores[0]:
             edge_label = data.stores[0]['edge_label']
             edge_type = []
@@ -448,7 +422,7 @@ class CodeDataSet(Dataset):
             else:
                 print(f'edge label error: {current_type}', flush=True)
                 data.edge_type = [self.edge_type_index['other']] * len(data.edge_index[0])
-        
+
         data.edge_type = torch.tensor(data.edge_type, dtype=torch.int64)
 
     def record_max_token_len_and_segmentation(self, X):
@@ -465,7 +439,7 @@ class CodeDataSet(Dataset):
         return mtl, func_token
 
     def get(self, idx: int) -> BaseData:
-        
+
         return_dict = {}
         if self.one_time_read:
             for t in self.g_type:

@@ -5,22 +5,21 @@ import pickle
 import sys
 import threading
 
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from util.utils import load_pickle_form_pyg_data
 
 import concurrent.futures
 
-
 my_lock = threading.Lock()
 error_id_target_s = set()
 
+
 def try_some_property(file_path):
     file_id = file_path.split(os.path.sep)[-1].split('.')[0].split('-')[1]
-    
+
     pyg_data = load_pickle_form_pyg_data(file_path)
     try:
-        if str(pyg_data.stores[0]['idx'].item())!=file_id:
+        if str(pyg_data.stores[0]['idx'].item()) != file_id:
             raise Exception('idx is not equal')
         if pyg_data.stores[0]['label'] is None or pyg_data.stores[0]['graph_label'] is None:
             raise Exception('x or y is None')
@@ -45,11 +44,12 @@ def try_some_property(file_path):
             'Message': str(e)
         }
         idx_target = '-'.join(file_path.split(os.path.sep)[-1].split('.')[0].split('-')[1:])
-        
+
         with my_lock:
             error_id_target_s.add(idx_target)
 
         return json.dumps(current_json)
+
 
 def valid_data_whether_usable(root_path):
     file_middle = '_output_pickle_'
@@ -57,7 +57,7 @@ def valid_data_whether_usable(root_path):
     train_types = ['train', 'test', 'valid']
 
     for train_type in train_types:
-        
+
         error_id_target_s.clear()
 
         for data_type in data_types:
@@ -68,7 +68,6 @@ def valid_data_whether_usable(root_path):
 
             print('Current:', folder_path, flush=True)
 
-            
             files = os.listdir(folder_path)
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
@@ -81,13 +80,14 @@ def valid_data_whether_usable(root_path):
                 for error in error_list:
                     result = error.result()
                     if result is not None:
-                        print('--------------------------------------------------------------------------------', flush=True)
+                        print('--------------------------------------------------------------------------------',
+                              flush=True)
                         print('-----Error in load preprocess and save data-----', flush=True)
                         print(result, flush=True)
                         print('-----Error in load preprocess and save data-----', flush=True)
-                        print('--------------------------------------------------------------------------------', flush=True)
+                        print('--------------------------------------------------------------------------------',
+                              flush=True)
 
-        
         for error_id_target in error_id_target_s:
             for data_type in data_types:
                 folder_path = os.path.join(root_path, f'{data_type}{file_middle}{train_type}')
@@ -98,16 +98,19 @@ def valid_data_whether_usable(root_path):
                 file_path = os.path.join(folder_path, f'{data_type}-{error_id_target}.pkl')
                 if os.path.exists(file_path):
                     os.remove(file_path)
-                    print('--------------------------------------------------------------------------------', flush=True)
+                    print('--------------------------------------------------------------------------------',
+                          flush=True)
                     print(f'Delete file: {file_path}', flush=True)
-                    print('--------------------------------------------------------------------------------', flush=True)
+                    print('--------------------------------------------------------------------------------',
+                          flush=True)
                 else:
-                    print('--------------------------------------------------------------------------------', flush=True)
+                    print('--------------------------------------------------------------------------------',
+                          flush=True)
                     print(f'File not exists: {file_path}', flush=True)
                     print('Error id:', error_id_target, flush=True)
                     print('Something wrong!', flush=True)
-                    print('--------------------------------------------------------------------------------', flush=True)
-
+                    print('--------------------------------------------------------------------------------',
+                          flush=True)
 
 
 def valid_data_alignment(root_path):
@@ -116,7 +119,7 @@ def valid_data_alignment(root_path):
     train_types = ['train', 'test', 'valid']
 
     for train_type in train_types:
-        
+
         error_id_target_s.clear()
         current_id_target_s = {}
 
@@ -128,7 +131,6 @@ def valid_data_alignment(root_path):
 
             print('Current:', folder_path, flush=True)
 
-            
             files = os.listdir(folder_path)
 
             for file in files:
@@ -139,7 +141,6 @@ def valid_data_alignment(root_path):
             if len(data_type_s) != len(data_types):
                 error_id_target_s.add(id_target)
 
-        
         for error_id_target in error_id_target_s:
             for data_type in data_types:
                 folder_path = os.path.join(root_path, f'{data_type}{file_middle}{train_type}')
@@ -150,28 +151,30 @@ def valid_data_alignment(root_path):
                 file_path = os.path.join(folder_path, f'{data_type}-{error_id_target}.pkl')
                 if os.path.exists(file_path):
                     os.remove(file_path)
-                    print('--------------------------------------------------------------------------------', flush=True)
+                    print('--------------------------------------------------------------------------------',
+                          flush=True)
                     print(f'Delete file: {file_path}', flush=True)
-                    print('--------------------------------------------------------------------------------', flush=True)
+                    print('--------------------------------------------------------------------------------',
+                          flush=True)
                 else:
-                    print('--------------------------------------------------------------------------------', flush=True)
+                    print('--------------------------------------------------------------------------------',
+                          flush=True)
                     print(f'File not exists: {file_path}', flush=True)
                     print('Error id:', error_id_target, flush=True)
                     print('Something wrong!', flush=True)
-                    print('--------------------------------------------------------------------------------', flush=True)
+                    print('--------------------------------------------------------------------------------',
+                          flush=True)
+
 
 if __name__ == '__main__':
     projects = ['DiverseVul20k-simplify-test']
     sub_projects = ['all']
 
-    
     parser = argparse.ArgumentParser()
 
-    
     parser.add_argument('-p', '--project_names', nargs='+', help='project_names')
     parser.add_argument('-sub', '--sub_project_names', nargs='+', help='sub_project_names')
 
-    
     args = parser.parse_args()
 
     if args.project_names:
@@ -190,6 +193,3 @@ if __name__ == '__main__':
             valid_data_alignment(root_path)
 
     print('End to check data whether usable', flush=True)
-
-
-

@@ -3,7 +3,6 @@ import json
 import os
 import sys
 
-
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from util.utils import load_pickle_form_pyg_data
 
@@ -27,7 +26,6 @@ def statistics_by_project_and_subproject(project_name, sub_project_name):
 
             print(folder_path)
 
-            
             files = os.listdir(folder_path)
 
             current_statistics_num, current_statistics_count = statistics_cwe_project_vul_num(folder_path, files)
@@ -47,7 +45,7 @@ def statistics_cwe_project_vul_num(root_path, files):
     count_1 = 0
     for file in files:
         file_path = os.path.join(root_path, file)
-        
+
         pyg_data = load_pickle_form_pyg_data(file_path)
         cwes = pyg_data.stores[0]['cwe']['cwe']
         project = pyg_data.stores[0]['project']
@@ -72,8 +70,9 @@ def statistics_cwe_project_vul_num(root_path, files):
         newkey_1 = key + '-%-' + '1'
         statistics_cwe_project_vul_num_dict[newkey_0] = cwe_project_vul_num_dict[key].count(0)
         statistics_cwe_project_vul_num_dict[newkey_1] = cwe_project_vul_num_dict[key].count(1)
-    
-    statistics_cwe_project_vul_num_dict = dict(sorted(statistics_cwe_project_vul_num_dict.items(), key=lambda item: item[0]))
+
+    statistics_cwe_project_vul_num_dict = dict(
+        sorted(statistics_cwe_project_vul_num_dict.items(), key=lambda item: item[0]))
     return statistics_cwe_project_vul_num_dict, statistics_count
 
 
@@ -81,14 +80,11 @@ if __name__ == '__main__':
     projects = ['DiverseVul-cwe10-simplify-enhance']
     sub_projects = ['all']
 
-    
     parser = argparse.ArgumentParser()
 
-    
     parser.add_argument('-p', '--project_names', nargs='+', help='project_names')
     parser.add_argument('-sub', '--sub_project_names', nargs='+', help='sub_project_names')
 
-    
     args = parser.parse_args()
 
     if args.project_names:

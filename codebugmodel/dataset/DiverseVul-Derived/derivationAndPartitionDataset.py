@@ -10,9 +10,7 @@ statisticInfo = {}
 all_data_path = 'allData.jsonl'
 usable_data_id_file = 'DiverseVul-usable_data.txt'
 
-
 min_0_1_count = 1
-
 
 multiple_restriction_0_1 = 3
 
@@ -31,7 +29,7 @@ def generateData_jsonl_by_idx():
         all_data.append(json.loads(line))
     for line in test_file.readlines():
         all_data.append(json.loads(line))
-    
+
     all_data = sorted(all_data, key=lambda x: x['idx'])
 
     global usable_data_id_file
@@ -46,7 +44,6 @@ def generateData_jsonl_by_idx():
                 allProjectFile.write(json.dumps(item) + '\n')
 
 
-
 def generateData_jsonl(data_file_json):
     file = open(data_file_json, 'r')
     items = []
@@ -55,7 +52,7 @@ def generateData_jsonl(data_file_json):
         items.append(dic)
 
     with open(all_data_path, 'w') as allProjectFile:
-        
+
         index = 0
         for js in items:
             newjs = {'idx': index, 'project': js['project'], 'func': js['func'], 'target': int(js['target']),
@@ -64,7 +61,6 @@ def generateData_jsonl(data_file_json):
             index += 1
 
             allProjectFile.write(json.dumps(newjs) + '\n')
-
 
 
 def statistic_base_Info(items):
@@ -80,10 +76,9 @@ def statistic_base_Info(items):
     count_vul = 0
     count_novul = 0
 
-    
     for js in items:
         projectSet.add(js['project'])
-        
+
         if js['target'] == 1:
             count_vul += 1
         elif js['target'] == 0:
@@ -91,14 +86,13 @@ def statistic_base_Info(items):
         else:
             print(f'target error: {js["target"]}')
 
-        
         key_project_vul = js['project'] + '-' + str(js['target'])
-        
+
         if key_project_vul in statistic_project_vul:
-            
+
             statistic_project_vul[key_project_vul] += 1
         else:
-            
+
             statistic_project_vul[key_project_vul] = 1
 
         CWE_type_list = js['cwe']
@@ -122,11 +116,12 @@ def statistic_base_Info(items):
             else:
                 statistic_CWE_project_vul[key_cwe_project_vul] = 1
 
-    
     statistic_project_vul = dict(sorted(statistic_project_vul.items(), key=lambda item: item[0]))
     statistic_CWE = dict(sorted(statistic_CWE.items(), key=lambda item: int(item[0].split('-')[1])))
-    statistic_CWE_vul = dict(sorted(statistic_CWE_vul.items(), key=lambda item: (item[0].split('-')[1], item[0].split('-')[2])))
-    statistic_CWE_project_vul = dict(sorted(statistic_CWE_project_vul.items(), key=lambda item: (item[0].split('-')[1], item[0].split('-')[2],  item[0].split('-')[3])))
+    statistic_CWE_vul = dict(
+        sorted(statistic_CWE_vul.items(), key=lambda item: (item[0].split('-')[1], item[0].split('-')[2])))
+    statistic_CWE_project_vul = dict(sorted(statistic_CWE_project_vul.items(), key=lambda item: (
+    item[0].split('-')[1], item[0].split('-')[2], item[0].split('-')[3])))
 
     statistic_vulNumber = {
         'vul': count_vul,
@@ -146,72 +141,7 @@ def statistic_base_Info(items):
     return statistic_base
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def judge_which_cwe_project_lack(item, train_cwe_project, valid_cwe_project, test_cwe_project):
-    
     count_0_1_dict = {
         "train-count-0": [],
         "train-count-1": [],
@@ -234,7 +164,6 @@ def judge_which_cwe_project_lack(item, train_cwe_project, valid_cwe_project, tes
                 count_0_1_dict[count_0].append(0)
                 count_0_1_dict[count_1].append(0)
 
-    
     def check_same_value(my_list):
         return -1 if len(set(my_list)) == 1 else my_list.index(min(my_list))
 
@@ -252,13 +181,7 @@ def judge_which_cwe_project_lack(item, train_cwe_project, valid_cwe_project, tes
     return 0
 
 
-
-
 def split_data_by_cwe_project(all_data):
-    
-    
-    
-    
     train_cwe_project = {}
     valid_cwe_project = {}
     test_cwe_project = {}
@@ -266,18 +189,16 @@ def split_data_by_cwe_project(all_data):
     dataset_valid = []
     dataset_test = []
 
-    
     random.shuffle(all_data)
 
     for item in all_data:
-        
+
         target = item['target']
-        
+
         train_type = None
 
-        
         lack_index = judge_which_cwe_project_lack(item, train_cwe_project, valid_cwe_project, test_cwe_project)
-        
+
         cwe = item['cwe'][lack_index]
 
         key = f"{cwe}-{item['project']}"
@@ -307,16 +228,16 @@ def split_data_by_cwe_project(all_data):
             test_cwe_project[key] = []
 
         if target == 1:
-            
+
             if train_cwe_project_count_1 < 8:
                 train_type = 1
             elif valid_cwe_project_count_1 == 0:
                 train_type = 2
             elif test_cwe_project_count_1 == 0:
                 train_type = 3
-            
+
             else:
-                
+
                 if train_cwe_project_count_1 / valid_cwe_project_count_1 < 8 and train_cwe_project_count_1 / test_cwe_project_count_1 < 8:
                     train_type = 1
                 elif train_cwe_project_count_1 / valid_cwe_project_count_1 >= 8:
@@ -338,7 +259,7 @@ def split_data_by_cwe_project(all_data):
             elif test_cwe_project_count_0 == 0:
                 train_type = 3
             else:
-                
+
                 if train_cwe_project_count_0 / valid_cwe_project_count_0 < 8 and train_cwe_project_count_0 / test_cwe_project_count_0 < 8:
                     train_type = 1
                 elif train_cwe_project_count_0 / valid_cwe_project_count_0 >= 8:
@@ -352,7 +273,6 @@ def split_data_by_cwe_project(all_data):
                     print('test:', test_cwe_project_count_0)
                     print('-----------------------------------')
 
-        
         if train_type == 1:
             dataset_train.append(item)
         elif train_type == 2:
@@ -384,21 +304,11 @@ def save_dataset(dataset, file_path):
             allProjectFile.write(json.dumps(item) + '\n')
 
 
-
-
-
-
-
-
-
-
 def data_preprocess(all_data):
-    
     global multiple_restriction_0_1
-    
+
     new_all_data = [item for item in all_data if item['cwe']]
 
-    
     cwe_project_vul = {}
     for item in new_all_data:
         for cwe in item['cwe']:
@@ -408,22 +318,20 @@ def data_preprocess(all_data):
             else:
                 cwe_project_vul[key] = [item['target']]
 
-    
-    cwe_project_vul = {key: value for key, value in cwe_project_vul.items() if value.count(1) >= 3 and value.count(0) >= 3}
+    cwe_project_vul = {key: value for key, value in cwe_project_vul.items() if
+                       value.count(1) >= 3 and value.count(0) >= 3}
 
-    
     delete_idx = []
-    
+
     new_all_data = sorted(new_all_data, key=lambda x: len(x['cwe']), reverse=True)
     new_all_data_add = []
-    for item in new_all_data: 
-        new_item_cwe = [] 
+    for item in new_all_data:
+        new_item_cwe = []
         for cwe in item['cwe']:
             key = cwe + '-' + item['project']
             if key in cwe_project_vul:
                 vul_0_1 = cwe_project_vul[key]
-                
-                
+
                 if vul_0_1.count(0) / vul_0_1.count(1) > multiple_restriction_0_1:
                     if item['target'] == 1:
                         new_item_cwe.append(cwe)
@@ -431,17 +339,13 @@ def data_preprocess(all_data):
                         cwe_project_vul[key].remove(0)
                 else:
                     new_item_cwe.append(cwe)
-        
+
         if len(new_item_cwe) == 0:
             delete_idx.append(item['idx'])
         else:
-            
+
             item['cwe'] = new_item_cwe
             new_all_data_add.append(item)
-
-
-
-    
 
     return new_all_data_add
 
@@ -459,31 +363,24 @@ def max_similarity(func, func_list):
     return max_sim
 
 
-
-
-
-
 def deal_key_values(key, values, multiple_restriction_0_1):
     global min_0_1_count
-    
+
     count_0 = len([x['target'] for x in values if x['target'] == 0])
     count_1 = len([x['target'] for x in values if x['target'] == 1])
 
-    
     if count_0 < min_0_1_count or count_1 < min_0_1_count:
-        
+
         for item in values:
             cwe_type = key.split('-%-')[0]
             with my_lock:
                 delete_idx_cwe.setdefault(item['idx'], []).append(cwe_type)
         return
 
-    
-    
     if count_0 / count_1 > multiple_restriction_0_1:
         need_delete_num = count_0 - count_1 * multiple_restriction_0_1
         target_1_func_list = [x['func'] for x in values if x['target'] == 1]
-        
+
         similarity_list = []
         for v_i in range(len(values)):
             if values[v_i]['target'] == 0:
@@ -493,28 +390,23 @@ def deal_key_values(key, values, multiple_restriction_0_1):
         delete_index = [sim[0] for sim in similarity_list[:need_delete_num]]
         for v_i in delete_index:
             item = values[v_i]
-            
+
             cwe_type = key.split('-%-')[0]
             with my_lock:
                 delete_idx_cwe.setdefault(item['idx'], []).append(cwe_type)
 
 
-
-
-
-
 my_lock = threading.Lock()
 delete_idx_cwe = {}
 
+
 def data_preprocess_similarity(all_data):
-    
     global multiple_restriction_0_1
-    
+
     num_workers = 32
 
     delete_idx_cwe.clear()
 
-    
     cwe_project_vul = {}
     for item in all_data:
         for cwe in item['cwe']:
@@ -528,7 +420,7 @@ def data_preprocess_similarity(all_data):
             future = executor.submit(deal_key_values, key, values, multiple_restriction_0_1)
             error_list.append(future)
         executor.shutdown()
-        
+
         flag = False
         for error in error_list:
             result = error.result()
@@ -582,10 +474,8 @@ def data_preprocess_delete_equal_func(all_data):
 
 
 def delete_empty_func(all_data):
-
-    
     reg = r'\w+\s*\(.*?\)[ \t\n\s\w]*\{[ \t\n]*((return[^;]*;?)|(return\s*;))?[ \t\n]*\}'
-    
+
     reg_end = r'}[\s\t\n]*$'
     new_all_data = []
     for item in all_data:
@@ -599,7 +489,7 @@ def delete_empty_func(all_data):
 
 if __name__ == '__main__':
     print('Begin!', flush=True)
-    
+
     data_file_json = '../DiverseVul/diversevul_20230702.json'
     if whether_generateData:
         print('Start generateData_jsonl!', flush=True)
@@ -618,29 +508,27 @@ if __name__ == '__main__':
 
     statistic_base_before_preprocess = statistic_base_Info(all_data)
 
-    
     print('Start data_preprocess_delete_equal_func!', flush=True)
-    all_data = data_preprocess_delete_equal_func(all_data) 
+    all_data = data_preprocess_delete_equal_func(all_data)
     print('End data_preprocess_delete_equal_func!', flush=True)
-    
+
     print('Start delete empty cwe!', flush=True)
     all_data = [item for item in all_data if item['cwe']]
     print('End delete empty cwe!', flush=True)
-    
+
     print('Start delete_empty_func!', flush=True)
     all_data = delete_empty_func(all_data)
     print('End delete_empty_func!', flush=True)
-    
+
     print('Start data_preprocess_similarity!', flush=True)
-    all_data = data_preprocess_similarity(all_data) 
+    all_data = data_preprocess_similarity(all_data)
     print('End data_preprocess_similarity!', flush=True)
 
     statistic_base_after_preprocess = statistic_base_Info(all_data)
 
-    
     print('Start split_data_by_cwe_project!', flush=True)
     train_dataset, valid_dataset, test_dataset = split_data_by_cwe_project(all_data)
-    
+
     save_dataset(train_dataset, './train.jsonl')
     save_dataset(valid_dataset, './valid.jsonl')
     save_dataset(test_dataset, './test.jsonl')
@@ -657,11 +545,6 @@ if __name__ == '__main__':
         'statistic_base_valid': statistic_base_valid,
         'statistic_base_test': statistic_base_test
     })
-
-    
-    
-    
-    
 
     with open('./statisticInfo.json', 'w') as statisticInfoFile:
         json.dump(statisticInfo, statisticInfoFile, indent=4)
