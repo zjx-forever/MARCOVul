@@ -838,8 +838,8 @@ fi
 python run.py \
     --epoch 10 \
     --block_size 512 \
-    --train_batch_size 16 \
-    --eval_batch_size 16 \
+    --train_batch_size 8 \
+    --eval_batch_size 8 \
     --learning_rate 1e-5 \
     --max_grad_norm 1.0 \
     --evaluate_during_training \
@@ -866,8 +866,8 @@ fi
 python run.py \
     --epoch 10 \
     --block_size 512 \
-    --train_batch_size 16 \
-    --eval_batch_size 16 \
+    --train_batch_size 8 \
+    --eval_batch_size 8 \
     --learning_rate 1e-5 \
     --max_grad_norm 1.0 \
     --evaluate_during_training \
@@ -895,8 +895,8 @@ fi
 python run.py \
     --epoch 10 \
     --block_size 512 \
-    --train_batch_size 16 \
-    --eval_batch_size 16 \
+    --train_batch_size 8 \
+    --eval_batch_size 8 \
     --learning_rate 1e-5 \
     --max_grad_norm 1.0 \
     --evaluate_during_training \

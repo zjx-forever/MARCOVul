@@ -30,7 +30,7 @@ import json
 from symbolizer import clean_gadget
 from tqdm import tqdm
 import multiprocessing
-from model import MyAutoModel, MyT5Model
+from model import MyAutoModel, MyT5Model, MyBGEModel
 from sklearn.metrics import f1_score, recall_score, precision_score, matthews_corrcoef
 
 cpu_cont = multiprocessing.cpu_count()
@@ -54,6 +54,7 @@ MODEL_CLASSES = {
     'distilbert': (DistilBertConfig, DistilBertForSequenceClassification, DistilBertTokenizer),
     'auto': (AutoConfig, AutoModelForSequenceClassification, AutoTokenizer),
     't5': (AutoConfig, T5ForSequenceClassification, AutoTokenizer),
+    'bge': (AutoConfig, AutoModelForSequenceClassification, AutoTokenizer),
 }
 
 
@@ -106,7 +107,7 @@ class TextDataset(Dataset):
         return torch.tensor(self.examples[i].input_ids), torch.tensor(self.examples[i].label)
 
 
-def set_seed(seed=42):
+def set_seed(seed=422):
     random.seed(seed)
     os.environ['PYHTONHASHSEED'] = str(seed)
     np.random.seed(seed)
@@ -239,9 +240,11 @@ def train(args, train_dataset, model, tokenizer):
                         best_all_score = all_score
                         logger.info("  " + "*" * 20)
                         logger.info("  Best acc:%s", round(results['eval_acc'], 4))
-                        logger.info("  Best F1:%s", round(results['eval_f1_macro'], 4))
+                        logger.info("  Best F1:%s", round(results['eval_f1'], 4))
+                        logger.info("  Best Macro-F1:%s", round(results['eval_f1_macro'], 4))
                         logger.info("  Best Recall:%s", round(results['eval_recall'], 4))
                         logger.info("  Best Precision:%s", round(results['eval_precision'], 4))
+                        logger.info("  Best MCC:%s", round(results['eval_mcc'], 4))
                         logger.info("  Best All Score:%s", round(all_score, 4))
                         logger.info("  " + "*" * 20)
 
@@ -313,20 +316,26 @@ def evaluate(args, model, tokenizer, eval_when_training=False):
     eval_loss = eval_loss / nb_eval_steps
     perplexity = torch.tensor(eval_loss)
     eval_f1_macro = f1_score(labels, preds, average='macro')
+    eval_f1 = f1_score(labels, preds, average='binary', pos_label=1)
     eval_recall = recall_score(labels, preds, average='binary', pos_label=1)
     eval_precision = precision_score(labels, preds, average='binary', pos_label=1)
+    eval_mcc = matthews_corrcoef(labels, preds)
 
     result = {
         "eval_loss": float(perplexity),
         "eval_acc": round(eval_acc, 4),
+        "eval_f1": round(eval_f1, 4),
         "eval_f1_macro": round(eval_f1_macro, 4),
         "eval_recall": round(eval_recall, 4),
         "eval_precision": round(eval_precision, 4),
+        "eval_mcc": round(eval_mcc, 4),
     }
     return result
 
 
 def test(args, model, tokenizer):
+    import time
+
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_dataset = TextDataset(tokenizer, args, args.test_data_file)
 
@@ -343,6 +352,8 @@ def test(args, model, tokenizer):
     logger.info("***** Running Test *****")
     logger.info("  Num examples = %d", len(eval_dataset))
     logger.info("  Batch size = %d", args.eval_batch_size)
+
+    start_time = time.time()
     nb_eval_steps = 0
     model.eval()
     logits = []
@@ -355,6 +366,10 @@ def test(args, model, tokenizer):
             logits.append(logit.cpu().numpy())
             labels.append(label.cpu().numpy())
         nb_eval_steps += 1
+
+    end_time = time.time()
+    total_time = end_time - start_time
+    avg_time_per_sample = total_time / len(eval_dataset)
 
     logits = np.concatenate(logits, 0)
     labels = np.concatenate(labels, 0)
@@ -373,6 +388,11 @@ def test(args, model, tokenizer):
     # MCC
     mcc = matthews_corrcoef(all_labels, all_preds)
 
+    logger.info("***** Test Time Statistics *****")
+    logger.info("  Total test time: %.4f seconds", total_time)
+    logger.info("  Average time per sample: %.4f seconds", avg_time_per_sample)
+    logger.info("  Samples per second: %.4f", 1.0 / avg_time_per_sample)
+
     result = {
         "test_acc": round(test_acc, 4),
         "test_f1": round(test_f1, 4),
@@ -380,6 +400,9 @@ def test(args, model, tokenizer):
         "test_recall": round(test_recall, 4),
         "test_precision": round(test_precision, 4),
         "mcc": round(mcc, 4),
+        "total_test_time": round(total_time, 4),
+        "avg_time_per_sample": round(avg_time_per_sample, 4),
+        "samples_per_second": round(1.0 / avg_time_per_sample, 4),
     }
     return result
 
@@ -567,6 +590,8 @@ def main():
         model = MyT5Model(model, config, tokenizer, args)
     elif args.model_type == 'auto':
         model = MyAutoModel(model, config, tokenizer, args)
+    elif args.model_type == 'bge':
+        model = MyBGEModel(model, config, tokenizer, args)
     else:
         model = MyAutoModel(model, config, tokenizer, args)
 

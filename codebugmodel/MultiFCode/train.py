@@ -1,8 +1,11 @@
 import argparse
 import copy
 import os
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
 import random
 import sys
+import time
 from typing import cast
 import numpy as np
 import torch
@@ -19,7 +22,7 @@ import wandb
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
-from model import MulModel_GCN_GCN_RGCN_LLM, MulModel_GAT_GAT_RGAT_LLM, Single_Text_LLM, MulModel_Four_modules_LLM
+from model import MulModel_GCN_GCN_RGCN_LLM, MulModel_Single_Test_LLM, Single_Text_LLM, MulModel_Four_modules_LLM
 from dataSet import CodeDataSet
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -27,7 +30,7 @@ from configs.parse_args import configure_arg_parser
 
 MY_MODEL_CLASSES = {
     'GCN_GCN_RGCN_LLM': MulModel_GCN_GCN_RGCN_LLM,
-    'GAT_GAT_RGAT_LLM': MulModel_GAT_GAT_RGAT_LLM,
+    'MulModel_Single_Test_LLM': MulModel_Single_Test_LLM,
     'Single_Text_LLM': Single_Text_LLM,
     'MulModel_Four_modules_LLM': MulModel_Four_modules_LLM,
 }
@@ -44,13 +47,14 @@ def keep_reproducibility(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
+
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     torch.use_deterministic_algorithms(True)
     os.environ['PYTHONHASHSEED'] = str(seed)
     torch_geometric.seed_everything(seed)
 
 
-myseed = 422  # My birthday, hhh
+myseed = 422
 
 keep_reproducibility(myseed)
 
@@ -79,11 +83,46 @@ model_base_path = ''
 def train_pre_train(model_type, device):
     global myseed
     global config
-    global best_model_file_path
+    global best_model_file_path, whether_reprocess
     model = None
     ast_best_model_file_path = ''
     cfg_best_model_file_path = ''
     pdg_best_model_file_path = ''
+
+    if whether_reprocess:
+
+        ori_config_gtype = copy.deepcopy(config.g_type)
+        config.g_type = ['ast', 'cfg', 'pdg']
+
+        train_path_list = generate_path_list('train')
+        valid_path_list = generate_path_list('valid')
+        test_path_list = generate_path_list('test')
+
+        if os.path.sep == '\\':
+
+            for i in range(len(train_path_list)):
+                train_path_list[i] = os.path.normpath(train_path_list[i])
+            for i in range(len(valid_path_list)):
+                valid_path_list[i] = os.path.normpath(valid_path_list[i])
+
+        print(f'------------------------Init------------------------', flush=True)
+        print('Init Train Data...', flush=True)
+        CodeDataSet(train_path_list, config, reprocess=whether_reprocess,
+                    one_time_read=whether_one_time_read, pre_embed=whether_pre_embed)
+        print('Init Train Data Done...', flush=True)
+
+        print('Init Valid Data...', flush=True)
+        CodeDataSet(valid_path_list, config, reprocess=whether_reprocess,
+                    one_time_read=whether_one_time_read, pre_embed=whether_pre_embed)
+        print('Init Valid Data Done...', flush=True)
+
+        print('Init Test Data...')
+        CodeDataSet(test_path_list, config, reprocess=whether_reprocess,
+                    one_time_read=whether_one_time_read, pre_embed=whether_pre_embed)
+        print('Init Test Data Done...')
+        print(f'----------------------------------------------------', flush=True)
+
+        config.g_type = ori_config_gtype
 
     def train_by_type(type_list):
         keep_reproducibility(myseed)
@@ -106,8 +145,11 @@ def train_pre_train(model_type, device):
     else:
         ori_use_text = copy.deepcopy(config.use_text)
         ori_pre_train_structure_used = copy.deepcopy(config.pre_train_structure.used)
+        ori_whether_reprocess = copy.deepcopy(whether_reprocess)
+
         config.use_text = False
         config.pre_train_structure.used = False
+        whether_reprocess = False
         print('------------------------Train Begin------------------------', flush=True)
         print('------------------------Train AST Begin------------------------', flush=True)
         ast_best_model_file_path = train_by_type(['ast'])
@@ -120,6 +162,7 @@ def train_pre_train(model_type, device):
         print('------------------------Train PDG Done------------------------', flush=True)
         config.use_text = ori_use_text
         config.pre_train_structure.used = ori_pre_train_structure_used
+        whether_reprocess = ori_whether_reprocess
 
     print('------------------------Train All Begin------------------------', flush=True)
     print('------------------------Best Model File Path------------------------', flush=True)
@@ -156,7 +199,13 @@ def train_pre_train(model_type, device):
     model.load_state_dict(cfg_filtered_dict, strict=False)
     model.load_state_dict(pdg_filtered_dict, strict=False)
 
+    ori_whether_reprocess = copy.deepcopy(whether_reprocess)
+    whether_reprocess = False
+
     train_valid(model, device)
+
+    test(model, device)
+    whether_reprocess = ori_whether_reprocess
     print('------------------------Train All Done------------------------', flush=True)
     print('------------------------Train Done------------------------', flush=True)
     return model
@@ -181,12 +230,12 @@ def train_valid(model, device):
     valid_path_list = generate_path_list('valid')
 
     if os.path.sep == '\\':
+
         for i in range(len(train_path_list)):
             train_path_list[i] = os.path.normpath(train_path_list[i])
         for i in range(len(valid_path_list)):
             valid_path_list[i] = os.path.normpath(valid_path_list[i])
 
-    global g_dataloader
     print(f'------------------------Train------------------------', flush=True)
     print('Loading Train Data...', flush=True)
     dataset_train = CodeDataSet(train_path_list, config, reprocess=whether_reprocess,
@@ -219,28 +268,33 @@ def train_valid(model, device):
         model.train()
         all_preds = np.array([])
         all_labels = np.array([])
+
         with tqdm(total=len(loader_train), ncols=80, desc=f"Epoch [{epoch + 1}/{all_epoch}]", disable=tqdm_disable,
                   mininterval=300) as pbar:
             total_loss = 0
+
             for i, batch in enumerate(loader_train):
                 for t in g_type:
                     batch[t].to(device)
-                # forward
+
                 output = model(batch)
                 class_weight = list(config.class_weight)
                 loss = model.cal_loss(output, batch[g_type[0]].y, config, class_weights=class_weight)
 
-                # backward
                 loss.backward()
+
                 if (i + 1) % grad_accumulation_steps == 0 or (i + 1) == len(loader_train):
                     optimizer.step()
+
                     optimizer.zero_grad()
 
                 total_loss += loss.detach().cpu().item() * len(batch[g_type[0]])
                 loss_record['train'].append(loss.detach().cpu().item())
+
                 preds = output.argmax(dim=1)
                 all_preds = np.append(all_preds, preds.cpu().numpy())
                 all_labels = np.append(all_labels, batch[g_type[0]].y.cpu().numpy())
+
                 pbar.update(1)
 
         if min_learning_rate is None or optimizer.param_groups[0]['lr'] > min_learning_rate:
@@ -270,6 +324,7 @@ def train_valid(model, device):
         log_dict["train_Avgloss"] = avg_loss
 
         print('Valid Start:', flush=True)
+
         validAvgloss, valid_acc, valid_recall, valid_precision, valid_f1, valid_macro_f1, valid_mcc = valid(model,
                                                                                                             loader_valid,
                                                                                                             device)
@@ -296,6 +351,7 @@ def train_valid(model, device):
             torch.save(model.state_dict(), best_model_file_path)
 
             print('---------Current Best Model---------', flush=True)
+
             print('Current all_score: ', all_score, flush=True)
             print(
                 f"Best Valid epoch: {epoch}, Best Valid Acc: {valid_acc}, Best Valid Recall: {valid_recall}, Best Valid Precision: {valid_precision}, Best Valid F1: {valid_f1}, Best Valid Macro-F1: {valid_macro_f1}, Best Valid MCC: {valid_mcc}",
@@ -304,6 +360,7 @@ def train_valid(model, device):
             early_stop_cnt += 1
 
         loss_record['valid'].append(validAvgloss)
+
         if early_stop_cnt >= config.early_stop:
             print('Early Stop!', flush=True)
             break
@@ -326,6 +383,7 @@ def valid(model, valid_set, device):
     g_type = list(config.g_type)
 
     model.eval()
+
     with torch.no_grad():
         all_preds = np.array([])
         all_labels = np.array([])
@@ -364,6 +422,7 @@ def test(model, device):
 
     print('---------------------------------------------Test---------------------------------------------')
     print('model file path: ', best_model_file_path)
+
     model.load_state_dict(torch.load(best_model_file_path))
     model.eval()
     print('Loading Test Data...')
@@ -379,6 +438,8 @@ def test(model, device):
     if device == 'cuda':
         torch.cuda.empty_cache()
 
+    start_time = time.time()
+
     with torch.no_grad():
         all_preds = np.array([])
         all_labels = np.array([])
@@ -393,43 +454,62 @@ def test(model, device):
                 all_preds = np.append(all_preds, preds.cpu().numpy())
                 all_labels = np.append(all_labels, batch[g_type[0]].y.cpu().numpy())
                 all_ids = np.append(all_ids, batch[g_type[0]].idx.cpu().numpy())
+
                 pbar.update(1)
 
-        test_acc, test_recall, test_precision, test_f1, test_macro_f1, test_mcc, pr_dict = calculate_metrics(all_preds,
-                                                                                                             all_labels,
-                                                                                                             pr_curve=True)
-        print(
-            f'Test Acc: {test_acc}, Test Recall: {test_recall}, Test Precision: {test_precision}, Test F1: {test_f1},  Test Macro-F1: {test_macro_f1}, Test MCC: {test_mcc}')
+    end_time = time.time()
+    total_time = end_time - start_time
+    avg_time_per_sample = total_time / len(all_labels)
 
-        if whether_log_wandb:
-            log_dict_test = {
-                "test_acc": test_acc,
-                "test_recall": test_recall,
-                "test_precision": test_precision,
-                "test_f1": test_f1,
-                "test_macro_f1": test_macro_f1,
-                "test_mcc": test_mcc
-            }
-            wandb.log(log_dict_test)
+    test_acc, test_recall, test_precision, test_f1, test_macro_f1, test_mcc, pr_dict = calculate_metrics(all_preds,
+                                                                                                         all_labels,
+                                                                                                         pr_curve=True)
+    print(
+        f'Test Acc: {test_acc}, Test Recall: {test_recall}, Test Precision: {test_precision}, Test F1: {test_f1},  Test Macro-F1: {test_macro_f1}, Test MCC: {test_mcc}')
 
-        beijing_tz = pytz.timezone('Asia/Shanghai')
-        current_time = datetime.now(beijing_tz).strftime('%Y-%m-%d_%H-%M-%S')
-        global model_base_path
-        output_result(all_ids, all_preds, all_labels,
-                      os.path.join(model_base_path, f'output_result_{current_time}.txt'))
-        pr_curve_path = os.path.join(model_base_path, f'pr_curve_{current_time}.pth')
-        torch.save(pr_dict, pr_curve_path)
+    print("***** Test Time Statistics *****")
+    print(f"  Total test time: {total_time:.4f} seconds")
+    print(f"  Average time per sample: {avg_time_per_sample:.4f} seconds")
+    print(f"  Samples per second: {1.0 / avg_time_per_sample:.4f}")
+
+    if whether_log_wandb:
+        log_dict_test = {
+            "test_acc": test_acc,
+            "test_recall": test_recall,
+            "test_precision": test_precision,
+            "test_f1": test_f1,
+            "test_macro_f1": test_macro_f1,
+            "test_mcc": test_mcc,
+            "total_test_time": total_time,
+            "avg_time_per_sample": avg_time_per_sample,
+            "samples_per_second": 1.0 / avg_time_per_sample
+        }
+        wandb.log(log_dict_test)
+
+    beijing_tz = pytz.timezone('Asia/Shanghai')
+    current_time = datetime.now(beijing_tz).strftime('%Y-%m-%d_%H-%M-%S')
+    global model_base_path
+    output_result(all_ids, all_preds, all_labels,
+                  os.path.join(model_base_path, f'output_result_{current_time}.txt'))
+    pr_curve_path = os.path.join(model_base_path, f'pr_curve_{current_time}.pth')
+    torch.save(pr_dict, pr_curve_path)
 
     print('---------------------------------------------Done---------------------------------------------')
 
 
 def calculate_metrics(all_preds, all_labels, pr_curve=False):
     test_acc = accuracy_score(all_labels, all_preds)
+
     test_recall = recall_score(all_labels, all_preds, average='binary', pos_label=1)
+
     test_precision = precision_score(all_labels, all_preds, average='binary', pos_label=1)
+
     test_f1 = f1_score(all_labels, all_preds, average='binary', pos_label=1)
+
     test_macro_f1 = f1_score(all_labels, all_preds, average='macro')
+
     test_mcc = matthews_corrcoef(all_labels, all_preds)
+
     if pr_curve:
         precision_list, recall_list, thresholds_list = precision_recall_curve(all_labels, all_preds)
         pr_dict = {'precision': precision_list, 'recall': recall_list, 'thresholds': thresholds_list}
@@ -499,6 +579,12 @@ def generate_path_list(pattern):
             path_list.append(config.cfg_train_data_path)
         if 'pdg' in g_type:
             path_list.append(config.pdg_train_data_path)
+
+
+
+
+
+
     elif pattern == 'valid':
         if 'ast' in g_type:
             path_list.append(config.ast_valid_data_path)
@@ -520,7 +606,7 @@ def generate_path_list(pattern):
 def main():
     global config
     global best_model_file_path
-    global whether_log_wandb, whether_pre_embed
+    global whether_log_wandb, whether_pre_embed, whether_reprocess
 
     arg_parser = configure_arg_parser()
     args, unknown = arg_parser.parse_known_args()
@@ -531,6 +617,14 @@ def main():
 
     parser = argparse.ArgumentParser()
 
+    def str2bool(v):
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
     parser.add_argument('-dsn', '--data_set_name', help='data_set_name')
     parser.add_argument('-dssub', '--sub_project', help='sub_project')
 
@@ -538,6 +632,18 @@ def main():
     parser.add_argument('-w2vsub', '--w2v_sub_project_name', help='w2v_sub_project_name')
     parser.add_argument('-w2vsg', '--w2v_skip_gram', type=int, help='w2v_skip_gram')
     parser.add_argument('-model', '--use_model', help='use_model', required=True)
+
+    parser.add_argument('-gt', '--gType', nargs='+', type=str, help='a list of gType')
+    parser.add_argument('-ut', '--useText', type=str2bool, help='Set useText')
+    parser.add_argument('-pe', '--preEmbed', type=str2bool, help='Set preEmbed')
+    parser.add_argument('-ptsu', '--PTSUsed', type=str2bool, help='Set pre_train_structure.used')
+    parser.add_argument('-ptse', '--PTSExist', type=str2bool, help='Set pre_train_structure.exist')
+
+    parser.add_argument('-wr', '--whetherReprocess', type=str2bool, help='Set whether_reprocess')
+
+    parser.add_argument('-gtmAST', '--g_type_model_ast', help='Set g_type_model_ast')
+    parser.add_argument('-gtmCFG', '--g_type_model_cfg', help='Set g_type_model_cfg')
+    parser.add_argument('-gtmPDG', '--g_type_model_pdg', help='Set g_type_model_pdg')
 
     args = parser.parse_args()
 
@@ -551,18 +657,43 @@ def main():
             config.model.w2v.sg_name = "Skip-gram"
         else:
             config.model.w2v.sg_name = "CBOW"
+
     if args.data_set_name:
         config.data_set_name = args.data_set_name
     if args.sub_project:
         config.sub_project = args.sub_project
 
+    if args.gType:
+        config.g_type = args.gType
+    if args.useText is not None:
+        config.use_text = args.useText
+    if args.preEmbed is not None:
+        config.pre_embed = args.preEmbed
+    if args.PTSUsed is not None:
+        config.pre_train_structure.used = args.PTSUsed
+    if args.PTSExist is not None:
+        config.pre_train_structure.exist = args.PTSExist
+
+    if args.g_type_model_ast:
+        config.g_type_model.ast = args.g_type_model_ast
+    if args.g_type_model_cfg:
+        config.g_type_model.cfg = args.g_type_model_cfg
+    if args.g_type_model_pdg:
+        config.g_type_model.pdg = args.g_type_model_pdg
+
+    if args.whetherReprocess is not None:
+        whether_reprocess = args.whetherReprocess
+
     whether_log_wandb = config.wandb_log
     whether_pre_embed = config.pre_embed
+
+    print("current g_type: ", list(config.g_type))
 
     if whether_log_wandb:
         wandb.login()
         wandb.init(
-            project="Bug-MultiFCode-zjx",
+
+            project="Bug-MultiFCode-zjx-Fix3",
 
             config={
                 "seed": myseed,
@@ -590,10 +721,12 @@ def main():
     best_model_file_path = ''
 
     if config.pre_train_structure.used:
+
         model = train_pre_train(args.use_model, device)
     else:
         generate_base_info()
         save_model_file()
+
         rng_state()
 
         model = MY_MODEL_CLASSES[args.use_model](config)
@@ -604,7 +737,7 @@ def main():
 
         train_valid(model, device)
 
-    test(model, device)
+        test(model, device)
 
     if whether_log_wandb:
         wandb.finish()

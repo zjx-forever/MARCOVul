@@ -1,6 +1,7 @@
 import argparse
 import concurrent.futures
 import os
+import pickle
 import re
 import sys
 
@@ -40,7 +41,7 @@ def simplifyMiddleStructureCode(data):
         data.num_edges = len(data.stores[0]['edge_index'][0])
         data.stores[0]['num_nodes'] = len(data_X_ori)
         data.stores[0]['num_edges'] = len(data.stores[0]['edge_index'][0])
-        return data
+        return data, 'skipped'
 
     data_X_need_delete = []
 
@@ -118,7 +119,7 @@ def simplifyMiddleStructureCode(data):
         raise Exception(
             f'error in preproccess_merge_same_SUB, max(data_EdgeIndex): {np.max(np.array(data.edge_index))}. Index beyond the boundary')
 
-    return data
+    return data, 'processed'
 
 
 def load_pyg_data_preprocess(data_path):
@@ -127,7 +128,7 @@ def load_pyg_data_preprocess(data_path):
         pyg_data.y = pyg_data.stores[0]['graph_label']
         pyg_data.x = pyg_data.stores[0]['label']
 
-        pyg_data = simplifyMiddleStructureCode(pyg_data)
+        pyg_data, status = simplifyMiddleStructureCode(pyg_data)
 
         data_path_split = data_path.split(os.path.sep)
         data_path_split[-4] = f'{data_path_split[-4]}-simplify'
@@ -136,6 +137,8 @@ def load_pyg_data_preprocess(data_path):
             os.makedirs(os.path.sep.join(data_path_split[:-1]), exist_ok=True)
 
         save_pyg_data_to_pickle(pyg_data, new_pyg_data_path)
+
+        return status
     except Exception as e:
         return f'Error in simplify middle structure code: {data_path}, {str(e)}'
 
@@ -151,22 +154,35 @@ def multiprocess_data(root_path):
                 data_file_path_list.append(os.path.join(root, file))
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
-        error_list = []
+        futures = []
         for data_file_path in data_file_path_list:
             future = executor.submit(load_pyg_data_preprocess, data_file_path)
-            error_list.append(future)
+            futures.append(future)
         executor.shutdown()
 
+        skipped_count = 0
+        processed_count = 0
+        error_count = 0
+
         flag = False
-        for error in error_list:
-            result = error.result()
+        for future in futures:
+            result = future.result()
             if result is not None:
-                flag = True
-                print('-----Error in simplify middle structure code-----', flush=True)
-                print(result, flush=True)
-                print('-----Error in simplify middle structure code-----', flush=True)
+                if result.startswith('Error'):
+                    flag = True
+                    error_count += 1
+                    print('-----Error in simplify middle structure code-----', flush=True)
+                    print(result, flush=True)
+                    print('-----Error in simplify middle structure code-----', flush=True)
+                elif result == 'skipped':
+                    skipped_count += 1
+                elif result == 'processed':
+                    processed_count += 1
+
         if flag:
             exit(1)
+
+        return skipped_count, processed_count, error_count
 
 
 if __name__ == '__main__':
@@ -190,8 +206,24 @@ if __name__ == '__main__':
         NUM_WORKERS = int(args.num_workers)
 
     print('Start simplify middle structure code', flush=True)
+
+    total_skipped = 0
+    total_processed = 0
+    total_errors = 0
+
     for project in projects:
         for sub_project in sub_projects:
             root_path = os.path.join(project, sub_project)
-            multiprocess_data(root_path)
+            print(f'Processing {root_path}...', flush=True)
+            skipped, processed, errors = multiprocess_data(root_path)
+            total_skipped += skipped
+            total_processed += processed
+            total_errors += errors
+            print(f'  Skipped: {skipped}, Processed: {processed}, Errors: {errors}', flush=True)
+
     print('Done simplify middle structure code', flush=True)
+    print('***** Processing Statistics *****', flush=True)
+    print(f'  Total files skipped: {total_skipped}', flush=True)
+    print(f'  Total files processed: {total_processed}', flush=True)
+    print(f'  Total errors: {total_errors}', flush=True)
+    print(f'  Total files: {total_skipped + total_processed + total_errors}', flush=True)
