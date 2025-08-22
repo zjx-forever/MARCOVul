@@ -1,0 +1,2 @@
+model_epoch_0_acc_0.5809591642924976_f1_0.41652892561983473_recall_0.7134767836919592_precision_0.29411764705882354.pth filter=lfs diff=lfs merge=lfs -text
+model_epoch_1_acc_0.6391263057929725_f1_0.41807044410413474_recall_0.6183465458663646_precision_0.3157894736842105.pth filter=lfs diff=lfs merge=lfs -text
