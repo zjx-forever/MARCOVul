@@ -226,3 +226,31 @@ To enter the container, use the following command:
 
 ``docker exec -it name (e.g. codebug) /bin/bash``
 
+
+
+## Citation
+
+If this project or dataset has been helpful for your research, please consider citing our paper.
+
+### How to Cite
+
+You can cite our work using the following BibTeX entry:
+
+```BibTeX
+@article{zhang2025real,
+  title={Real-World Code Vulnerability Detection Framework: From Data Preprocessing to Multi-Feature Fusion Detection},
+  author={Zhang, Jixian and Du, Qingfeng and Li, Sheng and Lu, Zhongda and He, Ting and Liu, Chengwei},
+  journal={IEEE Transactions on Dependable and Secure Computing},
+  year={2025},
+  publisher={IEEE}
+}
+```
+
+
+
+## License 
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details. 
+
+In short, the MIT license allows you to do almost anything you want with the code, as long as you include the original copyright and license notice in any copy of the software/source. It is very permissive and business-friendly. 
+
