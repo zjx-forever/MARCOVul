@@ -7,7 +7,6 @@ wandb_log: True
 pre_embed: True
 
 pre_train_structure:
-  
   used: True
   exist: True
   ast_path: './model/model_2024-11-16_22-22-22/model_epoch_8_acc_0.7136752136752137_f1_0.30289017341040464_recall_0.29671574178935445_precision_0.30932703659976385.pth'
@@ -27,15 +26,12 @@ class_weight: [ 1.0, 1.0 ]
 fine_tuning: False
 best_model_file_path: './model/acc-f1-model-e13.pth'
 
-
 data_set_name: "xxx"
 sub_project: "xxx"
 root_data_folder: "../joern/data/${data_set_name}/${sub_project}"
 
-
 g_type: [ 'ast', 'cfg', 'pdg' ]
 use_text: True
-
 
 ast_train_data_path: "${root_data_folder}/ast_output_pickle_train"
 ast_valid_data_path: "${root_data_folder}/ast_output_pickle_valid"
@@ -47,19 +43,9 @@ pdg_train_data_path: "${root_data_folder}/pdg_output_pickle_train"
 pdg_valid_data_path: "${root_data_folder}/pdg_output_pickle_valid"
 pdg_test_data_path: "${root_data_folder}/pdg_output_pickle_test"
 
-codeBERT:
-  output_size: 768
-  model_path: "../codeBERT/code/saved_models/checkpoint-best-acc/model.bin"
-  cache_dir: "../codeBERT/roberta_cache"
-  pretrain_model_name_or_path: "microsoft/codebert-base"
-  model_type: "roberta"
-
-
 model:
   name: "Model"
   data_folder: "data"
-
-
   embedding:
     used: True
     name_novar: "codebert-base"
@@ -104,47 +90,11 @@ model:
     sg: 1
     sg_name: "Skip-gram"
 
-  RNN:
-    input_size: 256
-    hidden_size: 256
-    output_size: 256
-    num_layers: 2
-    drop_out: 0.5
-    use_bi: true
-
-  GCN:
-    input_size: 256
-    hidden_size: 512
-    pooling_ratio: 0.8
-    n_hidden_layers: 2
-    drop_out: 0.3
-
-  GGNN:
-    input_size: 512
-    output_size: 512
-    hidden_output_size: 512
-    pooling_ratio: 0.8
-    num_layers: 3
-    n_hidden_layers: 2
-    drop_out: 0.3
-
-  MLP:
-
-    hidden_size: 1024
-    n_hidden_layers: 2
-    n_classes: 2
-    drop_out: 0.1
-
-
 joern:
   joern_path_root: "/opt/joern/joern-cli"
   joern_path_parse: "${joern.joern_path_root}/joern-parse"
   joern_path_export: "${joern.joern_path_root}/joern-export"
-
   data_folder: "data"
-
-
   export_format: [ 'ast', 'cfg', 'pdg' ]
   export_type: 'dot'
-
   generate_file_suffix: '.c'
