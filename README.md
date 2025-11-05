@@ -11,6 +11,10 @@ Zhang, J. (2025). All data of MARCOVul [Data set]. Zenodo. https://doi.org/10.52
 
 Data files include two zip files: ``dataset.zip`` and ``AllData.zip``.  Where ``AllData.zip`` includes everything in ``dataset.zip``. 
 
+Zhang, J. (2025). The optimized data of MARCOVul [Data set]. Zenodo. https://doi.org/10.5281/zenodo.17529638
+
+This dataset is a higher-quality version regenerated in our follow-up research after refining the generation rules of DiverseVul-Derived, primarily by improving the criteria for identifying identical functions.
+
 ##### dataset.zip
 
 ``dataset.zip`` includes only raw data and derived data, excluding intermediate data and model data.
